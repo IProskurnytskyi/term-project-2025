@@ -3,7 +3,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
+from fastapi_pagination import add_pagination
 
+from src.api.routers.field import router as field_router
+from src.api.routers.satellite import router as satellite_router
 from src.database.postgres.handler import PostgreSQLHandler as Database
 
 # setup logger
@@ -41,6 +44,11 @@ def create_app() -> FastAPI:
         FastAPI: A configured instance of the FastAPI application.
     """
     app = FastAPI(lifespan=lifespan, title="Geo Location Service")
+
+    add_pagination(app)
+
+    app.include_router(field_router, prefix="/api/v1")
+    app.include_router(satellite_router, prefix="/api/v1")
 
     @app.get("/", response_class=RedirectResponse, include_in_schema=False)
     async def docs():

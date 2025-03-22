@@ -12,6 +12,7 @@ from alembic import context
 from src.config.base import settings
 from src.database.common.dependencies import BaseSQL
 from src.database.postgres.core import PostgreSQLCore
+from src.models.field import Field
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

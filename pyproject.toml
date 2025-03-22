@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.12"
 fastapi = "^0.110.0"
+fastapi-pagination = "^0.12.24"
 uvicorn = "^0.27.1"
 greenlet = "^3.0.3"
 asyncio = "^3.4.3"
@@ -18,6 +19,7 @@ pydantic = "^2.6.2"
 pydantic-settings = "^2.2.1"
 sqlalchemy = "^2.0.27"
 geoalchemy2 = {extras = ["shapely"], version = "^0.14.6"}
+earthengine-api = "^1.5.7"
 
 [tool.poetry.group.dev.dependencies]
 coverage = "^7.4.3"

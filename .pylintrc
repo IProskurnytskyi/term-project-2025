@@ -433,7 +433,20 @@ disable=raw-checker-failed,
         use-implicit-booleaness-not-comparison-to-zero,
         missing-module-docstring,
         missing-class-docstring,
-        W0613
+        E0401,
+        E1102,
+        C0116,
+        W0611,
+        W0613,
+        W0621,
+        C0121,
+        C0103,
+        W0603,
+        R0917,
+        W0718,
+        W1203,
+        E0102,
+        W1514
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

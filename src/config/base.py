@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     postgres_password: Optional[str] = None
     postgres_host: Optional[str] = None
     postgres_port: int = 5432
+    gee_project: Optional[str] = None
 
 
 settings = Settings()
