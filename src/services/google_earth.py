@@ -5,7 +5,7 @@ from src.config.base import settings
 ee.Initialize(project=settings.gee_project)
 
 
-def get_latest_sentinel_image(boundary: dict):
+def get_latest_sentinel_image(boundary: dict) -> str:
     # Define the geometry
     ee_geometry = ee.Geometry.Polygon(boundary["coordinates"])
 
@@ -30,4 +30,4 @@ def get_latest_sentinel_image(boundary: dict):
         {"region": ee_geometry, "scale": 30, "crs": "EPSG:4326", **vis_params}
     )
 
-    return url
+    return url  # type: ignore[no-any-return]
