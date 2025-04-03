@@ -5,12 +5,14 @@ from src.config.base import settings
 ee.Initialize(project=settings.gee_project)
 
 
-def get_latest_sentinel_image(boundary: dict) -> str:
+def get_latest_sentinel_image(boundary: dict):
     # Define the geometry
     ee_geometry = ee.Geometry.Polygon(boundary["coordinates"])
 
     # Use the updated Sentinel-2 dataset
-    collection = ee.ImageCollection("COPERNICUS/S2_SR").filterBounds(ee_geometry)
+    collection = ee.ImageCollection("COPERNICUS/S2_HARMONIZED").filterBounds(
+        ee_geometry
+    )
 
     # Get the newest image
     newest_image = collection.sort("system:time_start", False).first()
@@ -22,8 +24,6 @@ def get_latest_sentinel_image(boundary: dict) -> str:
     vis_params = {"min": 0, "max": 3000, "bands": ["B4", "B3", "B2"]}
 
     # Get thumbnail URL
-    url = rgb_image.getThumbURL(
-        {"region": ee_geometry, "scale": 30, "crs": "EPSG:4326", **vis_params}
-    )
+    url = rgb_image.getThumbURL({"region": ee_geometry, "scale": 10, **vis_params})
 
-    return url  # type: ignore[no-any-return]
+    return url
