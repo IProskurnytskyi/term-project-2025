@@ -1,3 +1,5 @@
+from datetime import timedelta, datetime
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,37 +17,46 @@ async def get_satellite_image(
     satellite: SatelliteCreate, db: AsyncSession = Depends(get_db)
 ):
     """
-    Checks if a field with the given boundary exists in the database.
-    - If it exists and has an image, return it.
-    - If it exists but has no image, fetch the image, update the field, and return it.
-    - If no field exists, create one, fetch the image, and return it.
+    - If field exists and has an image, check if it is expired.
+    - If expired or missing, fetch a new image, and update the field.
+    - If no field exists, create one, fetch an image, and store it.
     """
     # Check if boundary exists in the database
     existing_field = await crud_field.get_field_by_boundary(
         boundary=satellite.boundary, db=db
     )
 
+    current_time = datetime.now()
+
     if existing_field:
-        # If field exists and has an image, return it
-        if existing_field.image_url:
+        # If field exists, has an image and not expired, return it
+        if existing_field.image_url and existing_field.expiration_time > current_time:
             return existing_field
 
-        # If field exists but has no image, fetch from GEE and update it
+        # If field exists but has no image or expired, fetch from GEE and update it
         image_url = get_latest_sentinel_image(boundary=satellite.boundary)
 
         updated_field = await crud_field.update_field(
             field_id=existing_field.id,  # type: ignore[arg-type]
-            field=FieldUpdate(image_url=image_url),
+            field=FieldUpdate(
+                image_url=image_url,
+                expiration_time=current_time + timedelta(minutes=50),
+            ),
             db=db,
         )
 
         return updated_field
 
-    # If no field found, create it and fetch image
+    # If no field found, fetch image and create it
     image_url = get_latest_sentinel_image(boundary=satellite.boundary)
 
     new_field = await crud_field.create_field(
-        FieldCreate(boundary=satellite.boundary, image_url=image_url), db=db
+        FieldCreate(
+            boundary=satellite.boundary,
+            image_url=image_url,
+            expiration_time=current_time + timedelta(minutes=50),
+        ),
+        db=db,
     )
 
     return new_field

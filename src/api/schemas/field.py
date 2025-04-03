@@ -9,6 +9,7 @@ from src.utils.validation import validate_geojson
 
 class FieldBase(BaseModel):
     boundary: dict
+    image_url: Optional[str] = Field(default=None, examples=[None])
 
     @field_validator("boundary", mode="before")
     @classmethod
@@ -17,16 +18,15 @@ class FieldBase(BaseModel):
 
 
 class FieldCreate(FieldBase):
-    pass
+    expiration_time: Optional[datetime] = Field(default=None, examples=[None])
 
 
 class FieldUpdate(FieldBase):
     boundary: Optional[dict] = Field(default=None, examples=[{}])
-    image_url: Optional[str] = Field(default=None, examples=[None])
+    expiration_time: Optional[datetime] = Field(default=None, examples=[None])
 
 
 class FieldRead(FieldBase):
-    image_url: Optional[str] = Field(default=None, examples=[None])
     id: UUID
     creation_date: datetime
     deletion_date: Optional[datetime] = Field(default=None, examples=[None])
