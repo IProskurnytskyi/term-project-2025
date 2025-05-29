@@ -10,7 +10,7 @@ WORKDIR /home/app
 COPY ./pyproject.toml ./
 
 RUN pip install poetry
-RUN poetry install --no-root
+RUN python -m poetry install --no-root
 
 COPY . ./
 
