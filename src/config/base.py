@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     )
     model_config = SettingsConfigDict(env_file=env_file, extra="allow")
 
+    cloud_sql_connection: Optional[str] = None
     postgres_database: Optional[str] = None
     postgres_username: Optional[str] = None
     postgres_password: Optional[str] = None

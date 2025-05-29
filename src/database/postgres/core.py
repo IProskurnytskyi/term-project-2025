@@ -59,6 +59,17 @@ class PostgreSQLCore:
         Returns:
             str: The constructed database URL.
         """
+        if settings.cloud_sql_connection:
+            return URL.create(
+                drivername="postgresql+asyncpg",
+                username=settings.postgres_username,
+                password=settings.postgres_password,
+                database=database,
+                query={
+                    "host": f"/cloudsql/{settings.cloud_sql_connection}/.s.PGSQL.5432"
+                },
+            )
+
         return URL.create(
             drivername="postgresql+asyncpg",
             username=settings.postgres_username,
