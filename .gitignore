@@ -9,6 +9,8 @@ secrets/.env
 secrets/.env.docker
 secrets/*.json
 
+side_info/
+
 .idea/
 # C extensions
 *.so
