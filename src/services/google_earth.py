@@ -9,13 +9,16 @@ def get_latest_sentinel_image(boundary: dict):
     # Define the geometry
     ee_geometry = ee.Geometry.Polygon(boundary["coordinates"])
 
-    # Use the updated Sentinel-2 dataset
-    collection = ee.ImageCollection("COPERNICUS/S2_HARMONIZED").filterBounds(
-        ee_geometry
+    # Use the updated Sentinel-2 dataset, filter out cloudy images
+    collection = (
+        ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
+        .filterBounds(ee_geometry)
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
+        .sort("system:time_start", False)
     )
 
-    # Get the newest image
-    newest_image = collection.sort("system:time_start", False).first()
+    # Get the newest clear image
+    newest_image = collection.first()
 
     # Select RGB bands (B4 = Red, B3 = Green, B2 = Blue)
     rgb_image = newest_image.select(["B4", "B3", "B2"])
