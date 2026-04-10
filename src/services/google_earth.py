@@ -26,7 +26,12 @@ def get_latest_sentinel_image(boundary: dict):
     # Apply visualization parameters
     vis_params = {"min": 0, "max": 3000, "bands": ["B4", "B3", "B2"]}
 
-    # Get thumbnail URL
-    url = rgb_image.getThumbURL({"region": ee_geometry, "scale": 10, **vis_params})
+    url = rgb_image.getThumbURL(
+        {
+            "region": ee_geometry,
+            "scale": 10,
+            **vis_params,
+        }
+    )
 
     return url

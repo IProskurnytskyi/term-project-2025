@@ -181,7 +181,7 @@ const App = (() => {
                 }
                 <div class="field-card-actions">
                     <button class="btn btn-sm btn-satellite">Satellite</button>
-                    <button class="btn btn-sm btn-danger">Delete</button>
+                    <button class="btn btn-sm btn-danger btn-delete">Delete</button>
                 </div>
             `;
 
@@ -193,7 +193,7 @@ const App = (() => {
             const satelliteBtn = card.querySelector(".btn-satellite");
             satelliteBtn.addEventListener("click", () => fetchSatelliteImage(field));
 
-            const deleteBtn = card.querySelector(".btn-danger");
+            const deleteBtn = card.querySelector(".btn-delete");
             deleteBtn.addEventListener("click", () => deleteField(field));
 
             elements.fieldsList.appendChild(card);
