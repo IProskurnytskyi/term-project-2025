@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Monitor</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="" />
+
+    <!-- Leaflet Draw CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+
+    <!-- App CSS -->
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+    <div id="app">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h1>Field Monitor</h1>
+                <button id="sidebar-toggle" class="sidebar-toggle" title="Toggle sidebar">&lsaquo;</button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" data-tab="fields">Fields</button>
+                <button class="tab" data-tab="draw">Draw</button>
+            </div>
+
+            <!-- Fields Tab -->
+            <div id="tab-fields" class="tab-content active">
+                <div class="fields-toolbar">
+                    <button id="btn-refresh" class="btn btn-sm" title="Refresh fields">&#x21bb; Refresh</button>
+                </div>
+                <div id="fields-list" class="fields-list">
+                    <p class="placeholder">Loading fields...</p>
+                </div>
+            </div>
+
+            <!-- Draw Tab -->
+            <div id="tab-draw" class="tab-content">
+                <p class="hint">Use the drawing tools on the map to create a polygon or rectangle, then save it as a field.</p>
+
+                <label for="geojson-output">GeoJSON Geometry</label>
+                <textarea id="geojson-output" rows="12" readonly placeholder="Draw a shape on the map..."></textarea>
+
+                <button id="btn-create-field" class="btn btn-primary" disabled>Create Field</button>
+
+                <div id="draw-status" class="status-message"></div>
+            </div>
+        </aside>
+
+        <!-- Map -->
+        <div id="map"></div>
+    </div>
+
+    <!-- Field detail popup template (hidden) -->
+    <template id="field-popup-template">
+        <div class="field-popup">
+            <p><strong>ID:</strong> <span class="popup-id"></span></p>
+            <p><strong>Created:</strong> <span class="popup-date"></span></p>
+            <div class="popup-image-container"></div>
+            <div class="popup-actions">
+                <button class="btn btn-sm btn-satellite" title="Fetch satellite image">Satellite</button>
+                <button class="btn btn-sm btn-danger btn-delete" title="Delete field">Delete</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
+    <!-- Leaflet Draw JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+    <!-- App JS -->
+    <script src="js/map.js"></script>
+    <script src="js/draw.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
