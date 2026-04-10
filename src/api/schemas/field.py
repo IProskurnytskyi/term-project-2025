@@ -10,6 +10,7 @@ from src.utils.validation import validate_geojson
 class FieldBase(BaseModel):
     boundary: dict
     image_url: Optional[str] = Field(default=None, examples=[None])
+    ndvi_url: Optional[str] = Field(default=None, examples=[None])
 
     @field_validator("boundary", mode="before")
     @classmethod

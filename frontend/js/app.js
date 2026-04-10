@@ -172,15 +172,33 @@ const App = (() => {
             const createdDate = new Date(field.creation_date).toLocaleString();
             const shortId = field.id.substring(0, 8) + "...";
 
+            let imagesHtml = "";
+            if (field.image_url || field.ndvi_url) {
+                imagesHtml += '<div class="field-card-images">';
+                if (field.image_url) {
+                    imagesHtml += `
+                        <div class="field-card-preview">
+                            <div class="preview-label">RGB</div>
+                            <img src="${field.image_url}" alt="Satellite" loading="lazy" />
+                        </div>`;
+                }
+                if (field.ndvi_url) {
+                    imagesHtml += `
+                        <div class="field-card-preview">
+                            <div class="preview-label preview-label-ndvi">NDVI</div>
+                            <img src="${field.ndvi_url}" alt="NDVI" loading="lazy" />
+                        </div>`;
+                }
+                imagesHtml += "</div>";
+            }
+
             card.innerHTML = `
                 <div class="field-card-id" title="${field.id}">${shortId}</div>
                 <div class="field-card-date">Created: ${createdDate}</div>
-                ${field.image_url
-                    ? `<div class="field-card-preview"><img src="${field.image_url}" alt="Satellite" loading="lazy" /></div>`
-                    : ""
-                }
+                ${imagesHtml}
                 <div class="field-card-actions">
-                    <button class="btn btn-sm btn-satellite">Satellite</button>
+                    <button class="btn btn-sm btn-satellite btn-fetch-rgb">RGB</button>
+                    <button class="btn btn-sm btn-ndvi btn-fetch-ndvi">NDVI</button>
                     <button class="btn btn-sm btn-danger btn-delete">Delete</button>
                 </div>
             `;
@@ -190,11 +208,9 @@ const App = (() => {
                 MapModule.focusField(field.id);
             });
 
-            const satelliteBtn = card.querySelector(".btn-satellite");
-            satelliteBtn.addEventListener("click", () => fetchSatelliteImage(field));
-
-            const deleteBtn = card.querySelector(".btn-delete");
-            deleteBtn.addEventListener("click", () => deleteField(field));
+            card.querySelector(".btn-fetch-rgb").addEventListener("click", () => fetchSatelliteImage(field));
+            card.querySelector(".btn-fetch-ndvi").addEventListener("click", () => fetchNdviImage(field));
+            card.querySelector(".btn-delete").addEventListener("click", () => deleteField(field));
 
             elements.fieldsList.appendChild(card);
         });
@@ -205,6 +221,7 @@ const App = (() => {
         fields.forEach((field) => {
             MapModule.addFieldToMap(field, {
                 onSatellite: fetchSatelliteImage,
+                onNdvi: fetchNdviImage,
                 onDelete: deleteField,
             });
         });
@@ -232,6 +249,29 @@ const App = (() => {
             MapModule.focusField(updatedField.id);
         } catch (error) {
             alert(`Failed to fetch satellite image: ${error.message}`);
+        }
+    }
+
+    async function fetchNdviImage(field) {
+        if (!confirm("Fetch NDVI image for this field? This may take a moment.")) return;
+
+        try {
+            const response = await fetch(`${API_BASE}/ndvi/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ boundary: field.boundary }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || `HTTP ${response.status}`);
+            }
+
+            const updatedField = await response.json();
+            await loadFields();
+            MapModule.focusField(updatedField.id);
+        } catch (error) {
+            alert(`Failed to fetch NDVI image: ${error.message}`);
         }
     }
 

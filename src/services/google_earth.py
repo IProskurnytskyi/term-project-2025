@@ -35,3 +35,36 @@ def get_latest_sentinel_image(boundary: dict):
     )
 
     return url
+
+
+def get_ndvi_image(boundary: dict) -> str:
+    ee_geometry = ee.Geometry.Polygon(boundary["coordinates"])
+
+    collection = (
+        ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
+        .filterBounds(ee_geometry)
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
+        .sort("system:time_start", False)
+    )
+
+    newest_image = collection.first()
+
+    # NDVI = (NIR - Red) / (NIR + Red), where NIR = B8, Red = B4
+    ndvi = newest_image.normalizedDifference(["B8", "B4"]).rename("NDVI")
+
+    # Color palette: red (dead/bare) -> yellow -> green (healthy vegetation)
+    vis_params = {
+        "min": -0.2,
+        "max": 0.8,
+        "palette": ["d73027", "fc8d59", "fee08b", "d9ef8b", "91cf60", "1a9850"],
+    }
+
+    url = ndvi.getThumbURL(
+        {
+            "region": ee_geometry,
+            "scale": 10,
+            **vis_params,
+        }
+    )
+
+    return url

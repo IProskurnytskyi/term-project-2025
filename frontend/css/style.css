@@ -208,14 +208,40 @@ html, body {
     margin-top: 4px;
 }
 
-.field-card-preview {
+.field-card-images {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
     margin-top: 8px;
+}
+
+.field-card-images .field-card-preview {
+    position: relative;
 }
 
 .field-card-preview img {
     width: 100%;
     border-radius: var(--radius);
     border: 1px solid var(--border);
+    display: block;
+}
+
+.preview-label {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    background: rgba(59, 130, 246, 0.85);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.preview-label-ndvi {
+    background: rgba(34, 197, 94, 0.85);
 }
 
 .field-card-actions {
@@ -318,6 +344,17 @@ textarea:focus {
     color: #fff;
 }
 
+.btn-ndvi {
+    background: var(--bg-tertiary);
+    border-color: var(--success);
+    color: var(--success);
+}
+
+.btn-ndvi:hover:not(:disabled) {
+    background: var(--success);
+    color: #fff;
+}
+
 /* ---- Status messages ---- */
 .status-message {
     margin-top: 8px;
@@ -354,10 +391,21 @@ textarea:focus {
     margin-top: 8px;
 }
 
-.popup-image-container img {
-    max-width: 100%;
-    border-radius: var(--radius);
+.popup-images {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
     margin-top: 8px;
+}
+
+.popup-image-container {
+    position: relative;
+}
+
+.popup-image-container img {
+    width: 100%;
+    border-radius: var(--radius);
+    display: block;
 }
 
 /* ---- Leaflet overrides for dark theme ---- */

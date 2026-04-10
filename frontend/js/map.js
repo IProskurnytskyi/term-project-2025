@@ -53,7 +53,7 @@ const MapModule = (() => {
         fieldsLayer.clearLayers();
     }
 
-    function addFieldToMap(field, { onSatellite, onDelete }) {
+    function addFieldToMap(field, { onSatellite, onNdvi, onDelete }) {
         if (!field.boundary || !field.boundary.coordinates) return null;
 
         const geoJsonLayer = L.geoJSON(field.boundary, {
@@ -66,15 +66,15 @@ const MapModule = (() => {
             layer.on("mouseover", () => layer.setStyle(FIELD_HOVER_STYLE));
             layer.on("mouseout", () => layer.setStyle(FIELD_STYLE));
 
-            const popupContent = buildPopupContent(field, { onSatellite, onDelete });
-            layer.bindPopup(popupContent, { maxWidth: 300 });
+            const popupContent = buildPopupContent(field, { onSatellite, onNdvi, onDelete });
+            layer.bindPopup(popupContent, { maxWidth: 350 });
         });
 
         geoJsonLayer.addTo(fieldsLayer);
         return geoJsonLayer;
     }
 
-    function buildPopupContent(field, { onSatellite, onDelete }) {
+    function buildPopupContent(field, { onSatellite, onNdvi, onDelete }) {
         const container = document.createElement("div");
         container.className = "field-popup";
 
@@ -86,15 +86,25 @@ const MapModule = (() => {
             <p><strong>Created:</strong> ${createdDate}</p>
         `;
 
-        if (field.image_url) {
-            const imageContainer = document.createElement("div");
-            imageContainer.className = "popup-image-container";
-            const img = document.createElement("img");
-            img.src = field.image_url;
-            img.alt = "Satellite image";
-            img.loading = "lazy";
-            imageContainer.appendChild(img);
-            container.appendChild(imageContainer);
+        if (field.image_url || field.ndvi_url) {
+            const imagesContainer = document.createElement("div");
+            imagesContainer.className = "popup-images";
+
+            if (field.image_url) {
+                const wrapper = document.createElement("div");
+                wrapper.className = "popup-image-container";
+                wrapper.innerHTML = `<div class="preview-label">RGB</div><img src="${field.image_url}" alt="Satellite" loading="lazy" />`;
+                imagesContainer.appendChild(wrapper);
+            }
+
+            if (field.ndvi_url) {
+                const wrapper = document.createElement("div");
+                wrapper.className = "popup-image-container";
+                wrapper.innerHTML = `<div class="preview-label preview-label-ndvi">NDVI</div><img src="${field.ndvi_url}" alt="NDVI" loading="lazy" />`;
+                imagesContainer.appendChild(wrapper);
+            }
+
+            container.appendChild(imagesContainer);
         }
 
         const actions = document.createElement("div");
@@ -102,10 +112,18 @@ const MapModule = (() => {
 
         const satelliteBtn = document.createElement("button");
         satelliteBtn.className = "btn btn-sm btn-satellite";
-        satelliteBtn.textContent = "Satellite";
+        satelliteBtn.textContent = "RGB";
         satelliteBtn.addEventListener("click", (event) => {
             event.stopPropagation();
             onSatellite(field);
+        });
+
+        const ndviBtn = document.createElement("button");
+        ndviBtn.className = "btn btn-sm btn-ndvi";
+        ndviBtn.textContent = "NDVI";
+        ndviBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            onNdvi(field);
         });
 
         const deleteBtn = document.createElement("button");
@@ -117,6 +135,7 @@ const MapModule = (() => {
         });
 
         actions.appendChild(satelliteBtn);
+        actions.appendChild(ndviBtn);
         actions.appendChild(deleteBtn);
         container.appendChild(actions);
 
