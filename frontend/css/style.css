@@ -208,10 +208,14 @@ html, body {
     margin-top: 4px;
 }
 
-.field-card-image {
+.field-card-preview {
     margin-top: 8px;
-    font-size: 12px;
-    color: var(--success);
+}
+
+.field-card-preview img {
+    width: 100%;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
 }
 
 .field-card-actions {

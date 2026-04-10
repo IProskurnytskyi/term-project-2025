@@ -175,7 +175,10 @@ const App = (() => {
             card.innerHTML = `
                 <div class="field-card-id" title="${field.id}">${shortId}</div>
                 <div class="field-card-date">Created: ${createdDate}</div>
-                ${field.image_url ? '<div class="field-card-image">Has satellite image</div>' : ""}
+                ${field.image_url
+                    ? `<div class="field-card-preview"><img src="${field.image_url}" alt="Satellite" loading="lazy" /></div>`
+                    : ""
+                }
                 <div class="field-card-actions">
                     <button class="btn btn-sm btn-satellite">Satellite</button>
                     <button class="btn btn-sm btn-danger">Delete</button>
@@ -224,7 +227,9 @@ const App = (() => {
                 throw new Error(error.detail || `HTTP ${response.status}`);
             }
 
+            const updatedField = await response.json();
             await loadFields();
+            MapModule.focusField(updatedField.id);
         } catch (error) {
             alert(`Failed to fetch satellite image: ${error.message}`);
         }
