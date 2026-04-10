@@ -427,18 +427,10 @@ const App = (() => {
                 const error = await response.json();
                 throw new Error(error.detail || `HTTP ${response.status}`);
             }
-            const weather = await response.json();
-            const current = weather.current;
-            alert(
-                `Weather at field:\n` +
-                `${current.weather_description}\n` +
-                `Temperature: ${current.temperature}°C (feels ${current.apparent_temperature}°C)\n` +
-                `Humidity: ${current.humidity}%\n` +
-                `Wind: ${current.wind_speed} km/h\n` +
-                `Precipitation: ${current.precipitation} mm`
-            );
+            return await response.json();
         } catch (error) {
             alert(`Failed to fetch weather: ${error.message}`);
+            return null;
         }
     }
 

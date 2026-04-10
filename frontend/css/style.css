@@ -209,20 +209,30 @@ html, body {
 }
 
 .field-card-images {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
     margin-top: 8px;
 }
 
-.field-card-images .field-card-preview {
+.field-card-preview {
     position: relative;
+    margin-bottom: 6px;
 }
 
 .field-card-preview img {
     width: 100%;
+    height: auto;
     border-radius: var(--radius);
     border: 1px solid var(--border);
+    display: block;
+}
+
+.popup-image-container {
+    position: relative;
+}
+
+.popup-image-container img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius);
     display: block;
 }
 
@@ -230,6 +240,7 @@ html, body {
     position: absolute;
     top: 4px;
     left: 4px;
+    z-index: 1;
     background: rgba(59, 130, 246, 0.85);
     color: #fff;
     font-size: 10px;
@@ -417,22 +428,17 @@ textarea:focus {
     margin-top: 8px;
 }
 
+.popup-weather {
+    margin-top: 8px;
+}
+
 .popup-images {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 6px;
     margin-top: 8px;
 }
 
-.popup-image-container {
-    position: relative;
-}
-
-.popup-image-container img {
-    width: 100%;
-    border-radius: var(--radius);
-    display: block;
-}
 
 /* ---- Leaflet overrides for dark theme ---- */
 .leaflet-control-zoom a {

@@ -133,14 +133,6 @@ const MapModule = (() => {
             onNdvi(field);
         });
 
-        const weatherBtn = document.createElement("button");
-        weatherBtn.className = "btn btn-sm btn-weather";
-        weatherBtn.textContent = "Weather";
-        weatherBtn.addEventListener("click", (event) => {
-            event.stopPropagation();
-            onWeather(field);
-        });
-
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "btn btn-sm btn-danger";
         deleteBtn.textContent = "Delete";
@@ -151,9 +143,43 @@ const MapModule = (() => {
 
         actions.appendChild(satelliteBtn);
         actions.appendChild(ndviBtn);
-        actions.appendChild(weatherBtn);
         actions.appendChild(deleteBtn);
         container.appendChild(actions);
+
+        const weatherContainer = document.createElement("div");
+        weatherContainer.className = "popup-weather";
+
+        const weatherBtn = document.createElement("button");
+        weatherBtn.className = "btn btn-sm btn-weather";
+        weatherBtn.textContent = "Load weather";
+        weatherBtn.addEventListener("click", async (event) => {
+            event.stopPropagation();
+            weatherBtn.disabled = true;
+            weatherBtn.innerHTML = '<span class="spinner"></span> Loading...';
+            const weatherData = await onWeather(field);
+            if (weatherData) {
+                const current = weatherData.current;
+                weatherContainer.innerHTML = `
+                    <div class="weather-panel">
+                        <div class="weather-current">
+                            <div class="weather-temp">${current.temperature}°C</div>
+                            <div class="weather-desc">${current.weather_description}</div>
+                            <div class="weather-details">
+                                <span>Feels ${current.apparent_temperature}°C</span>
+                                <span>Humidity ${current.humidity}%</span>
+                                <span>Wind ${current.wind_speed} km/h</span>
+                                <span>Rain ${current.precipitation} mm</span>
+                            </div>
+                        </div>
+                    </div>`;
+            } else {
+                weatherBtn.textContent = "Load weather";
+                weatherBtn.disabled = false;
+            }
+        });
+
+        weatherContainer.appendChild(weatherBtn);
+        container.appendChild(weatherContainer);
 
         return container;
     }
