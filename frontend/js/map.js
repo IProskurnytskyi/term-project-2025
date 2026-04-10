@@ -53,7 +53,7 @@ const MapModule = (() => {
         fieldsLayer.clearLayers();
     }
 
-    function addFieldToMap(field, { onSatellite, onNdvi, onWeather, onDelete }) {
+    function addFieldToMap(field, { onSatellite, onNdvi, onSar, onWeather, onDelete }) {
         if (!field.boundary || !field.boundary.coordinates) return null;
 
         const geoJsonLayer = L.geoJSON(field.boundary, {
@@ -66,7 +66,7 @@ const MapModule = (() => {
             layer.on("mouseover", () => layer.setStyle(FIELD_HOVER_STYLE));
             layer.on("mouseout", () => layer.setStyle(FIELD_STYLE));
 
-            const popupContent = buildPopupContent(field, { onSatellite, onNdvi, onWeather, onDelete });
+            const popupContent = buildPopupContent(field, { onSatellite, onNdvi, onSar, onWeather, onDelete });
             layer.bindPopup(popupContent, { maxWidth: 350 });
         });
 
@@ -74,7 +74,7 @@ const MapModule = (() => {
         return geoJsonLayer;
     }
 
-    function buildPopupContent(field, { onSatellite, onNdvi, onWeather, onDelete }) {
+    function buildPopupContent(field, { onSatellite, onNdvi, onSar, onWeather, onDelete }) {
         const container = document.createElement("div");
         container.className = "field-popup";
 
@@ -133,6 +133,14 @@ const MapModule = (() => {
             onNdvi(field);
         });
 
+        const sarBtn = document.createElement("button");
+        sarBtn.className = "btn btn-sm btn-sar";
+        sarBtn.textContent = "SAR";
+        sarBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            togglePopupSarForm(field, sarSection, onSar);
+        });
+
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "btn btn-sm btn-danger";
         deleteBtn.textContent = "Delete";
@@ -143,8 +151,13 @@ const MapModule = (() => {
 
         actions.appendChild(satelliteBtn);
         actions.appendChild(ndviBtn);
+        actions.appendChild(sarBtn);
         actions.appendChild(deleteBtn);
         container.appendChild(actions);
+
+        const sarSection = document.createElement("div");
+        sarSection.className = "popup-sar";
+        container.appendChild(sarSection);
 
         const weatherContainer = document.createElement("div");
         weatherContainer.className = "popup-weather";
@@ -182,6 +195,60 @@ const MapModule = (() => {
         container.appendChild(weatherContainer);
 
         return container;
+    }
+
+    function togglePopupSarForm(field, sarSection, onSar) {
+        if (sarSection.querySelector(".sar-form")) {
+            sarSection.innerHTML = "";
+            return;
+        }
+
+        const today = new Date().toISOString().split("T")[0];
+        const threeMonthsAgo = new Date(Date.now() - 90 * 86400000).toISOString().split("T")[0];
+        const sixMonthsAgo = new Date(Date.now() - 180 * 86400000).toISOString().split("T")[0];
+        const nineMonthsAgo = new Date(Date.now() - 270 * 86400000).toISOString().split("T")[0];
+
+        sarSection.innerHTML = `
+            <div class="sar-form">
+                <div class="sar-period">
+                    <span class="sar-period-label">Before period</span>
+                    <input type="date" class="sar-input sar-before-start" value="${nineMonthsAgo}" />
+                    <input type="date" class="sar-input sar-before-end" value="${sixMonthsAgo}" />
+                </div>
+                <div class="sar-period">
+                    <span class="sar-period-label">After period</span>
+                    <input type="date" class="sar-input sar-after-start" value="${threeMonthsAgo}" />
+                    <input type="date" class="sar-input sar-after-end" value="${today}" />
+                </div>
+                <button class="btn btn-sm btn-sar btn-run-sar">Run SAR Change Detection</button>
+                <div class="sar-status"></div>
+            </div>
+        `;
+
+        sarSection.querySelector(".btn-run-sar").addEventListener("click", async (event) => {
+            event.stopPropagation();
+            const beforeStart = sarSection.querySelector(".sar-before-start").value;
+            const beforeEnd = sarSection.querySelector(".sar-before-end").value;
+            const afterStart = sarSection.querySelector(".sar-after-start").value;
+            const afterEnd = sarSection.querySelector(".sar-after-end").value;
+            const statusEl = sarSection.querySelector(".sar-status");
+            const runBtn = sarSection.querySelector(".btn-run-sar");
+
+            if (!beforeStart || !beforeEnd || !afterStart || !afterEnd) {
+                statusEl.innerHTML = '<span class="status-message error">Please fill all date fields</span>';
+                return;
+            }
+
+            runBtn.disabled = true;
+            statusEl.innerHTML = '<span class="spinner"></span> Computing SAR change detection...';
+
+            try {
+                await onSar(field, beforeStart, beforeEnd, afterStart, afterEnd);
+            } catch (error) {
+                statusEl.innerHTML = `<span class="status-message error">Error: ${error.message}</span>`;
+                runBtn.disabled = false;
+            }
+        });
     }
 
     function focusField(fieldId) {

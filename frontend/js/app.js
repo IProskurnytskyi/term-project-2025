@@ -239,6 +239,7 @@ const App = (() => {
             MapModule.addFieldToMap(field, {
                 onSatellite: fetchSatelliteImage,
                 onNdvi: fetchNdviImage,
+                onSar: fetchSarChangePopup,
                 onWeather: fetchWeatherPopup,
                 onDelete: deleteField,
             });
@@ -418,6 +419,29 @@ const App = (() => {
             statusEl.innerHTML = `<span class="status-message error">Error: ${error.message}</span>`;
             runBtn.disabled = false;
         }
+    }
+
+    async function fetchSarChangePopup(field, dateBeforeStart, dateBeforeEnd, dateAfterStart, dateAfterEnd) {
+        const response = await fetch(`${API_BASE}/sar-change/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                boundary: field.boundary,
+                date_before_start: dateBeforeStart,
+                date_before_end: dateBeforeEnd,
+                date_after_start: dateAfterStart,
+                date_after_end: dateAfterEnd,
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || `HTTP ${response.status}`);
+        }
+
+        const updatedField = await response.json();
+        await loadFields();
+        MapModule.focusField(updatedField.id);
     }
 
     async function fetchWeatherPopup(field) {
