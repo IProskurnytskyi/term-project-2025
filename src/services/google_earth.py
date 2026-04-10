@@ -1,3 +1,5 @@
+from datetime import date
+
 import ee
 
 from src.config.base import settings
@@ -60,6 +62,62 @@ def get_ndvi_image(boundary: dict) -> str:
     }
 
     url = ndvi.getThumbURL(
+        {
+            "region": ee_geometry,
+            "scale": 10,
+            **vis_params,
+        }
+    )
+
+    return url
+
+
+def get_sar_change_detection(
+    boundary: dict,
+    date_before_start: date,
+    date_before_end: date,
+    date_after_start: date,
+    date_after_end: date,
+) -> str:
+    """
+    Compute SAR change detection between two time periods using Sentinel-1 VV backscatter.
+    Red = decrease in backscatter (potential destruction/change).
+    Blue = increase in backscatter.
+    """
+    ee_geometry = ee.Geometry.Polygon(boundary["coordinates"])
+
+    def get_sar_composite(start: date, end: date) -> ee.Image:
+        return (
+            ee.ImageCollection("COPERNICUS/S1_GRD")
+            .filterBounds(ee_geometry)
+            .filterDate(start.isoformat(), end.isoformat())
+            .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VV"))
+            .filter(ee.Filter.eq("instrumentMode", "IW"))
+            .select("VV")
+            .median()
+        )
+
+    before_composite = get_sar_composite(date_before_start, date_before_end)
+    after_composite = get_sar_composite(date_after_start, date_after_end)
+
+    # Positive = increase, negative = decrease in backscatter
+    difference = after_composite.subtract(before_composite).rename("change")
+
+    vis_params = {
+        "min": -5,
+        "max": 5,
+        "palette": [
+            "d73027",
+            "f46d43",
+            "fdae61",
+            "ffffff",
+            "abd9e9",
+            "74add1",
+            "4575b4",
+        ],
+    }
+
+    url = difference.getThumbURL(
         {
             "region": ee_geometry,
             "scale": 10,

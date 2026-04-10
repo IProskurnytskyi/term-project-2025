@@ -86,7 +86,7 @@ const MapModule = (() => {
             <p><strong>Created:</strong> ${createdDate}</p>
         `;
 
-        if (field.image_url || field.ndvi_url) {
+        if (field.image_url || field.ndvi_url || field.sar_change_url) {
             const imagesContainer = document.createElement("div");
             imagesContainer.className = "popup-images";
 
@@ -101,6 +101,13 @@ const MapModule = (() => {
                 const wrapper = document.createElement("div");
                 wrapper.className = "popup-image-container";
                 wrapper.innerHTML = `<div class="preview-label preview-label-ndvi">NDVI</div><img src="${field.ndvi_url}" alt="NDVI" loading="lazy" />`;
+                imagesContainer.appendChild(wrapper);
+            }
+
+            if (field.sar_change_url) {
+                const wrapper = document.createElement("div");
+                wrapper.className = "popup-image-container";
+                wrapper.innerHTML = `<div class="preview-label preview-label-sar">SAR</div><img src="${field.sar_change_url}" alt="SAR Change" loading="lazy" />`;
                 imagesContainer.appendChild(wrapper);
             }
 

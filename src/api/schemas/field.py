@@ -11,6 +11,7 @@ class FieldBase(BaseModel):
     boundary: dict
     image_url: Optional[str] = Field(default=None, examples=[None])
     ndvi_url: Optional[str] = Field(default=None, examples=[None])
+    sar_change_url: Optional[str] = Field(default=None, examples=[None])
 
     @field_validator("boundary", mode="before")
     @classmethod

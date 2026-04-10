@@ -173,7 +173,7 @@ const App = (() => {
             const shortId = field.id.substring(0, 8) + "...";
 
             let imagesHtml = "";
-            if (field.image_url || field.ndvi_url) {
+            if (field.image_url || field.ndvi_url || field.sar_change_url) {
                 imagesHtml += '<div class="field-card-images">';
                 if (field.image_url) {
                     imagesHtml += `
@@ -189,29 +189,43 @@ const App = (() => {
                             <img src="${field.ndvi_url}" alt="NDVI" loading="lazy" />
                         </div>`;
                 }
+                if (field.sar_change_url) {
+                    imagesHtml += `
+                        <div class="field-card-preview">
+                            <div class="preview-label preview-label-sar">SAR</div>
+                            <img src="${field.sar_change_url}" alt="SAR Change" loading="lazy" />
+                        </div>`;
+                }
                 imagesHtml += "</div>";
             }
+
+            const today = new Date().toISOString().split("T")[0];
+            const sixMonthsAgo = new Date(Date.now() - 180 * 86400000).toISOString().split("T")[0];
+            const oneYearAgo = new Date(Date.now() - 365 * 86400000).toISOString().split("T")[0];
 
             card.innerHTML = `
                 <div class="field-card-id" title="${field.id}">${shortId}</div>
                 <div class="field-card-date">Created: ${createdDate}</div>
                 ${imagesHtml}
                 <div class="field-card-weather" id="weather-${field.id}"></div>
+                <div class="field-card-sar" id="sar-${field.id}"></div>
                 <div class="field-card-actions">
                     <button class="btn btn-sm btn-satellite btn-fetch-rgb">RGB</button>
                     <button class="btn btn-sm btn-ndvi btn-fetch-ndvi">NDVI</button>
+                    <button class="btn btn-sm btn-sar btn-toggle-sar">SAR</button>
                     <button class="btn btn-sm btn-weather btn-fetch-weather">Weather</button>
                     <button class="btn btn-sm btn-danger btn-delete">Delete</button>
                 </div>
             `;
 
             card.addEventListener("click", (event) => {
-                if (event.target.tagName === "BUTTON") return;
+                if (event.target.tagName === "BUTTON" || event.target.tagName === "INPUT") return;
                 MapModule.focusField(field.id);
             });
 
             card.querySelector(".btn-fetch-rgb").addEventListener("click", () => fetchSatelliteImage(field));
             card.querySelector(".btn-fetch-ndvi").addEventListener("click", () => fetchNdviImage(field));
+            card.querySelector(".btn-toggle-sar").addEventListener("click", () => toggleSarForm(field, card));
             card.querySelector(".btn-fetch-weather").addEventListener("click", () => fetchWeather(field, card));
             card.querySelector(".btn-delete").addEventListener("click", () => deleteField(field));
 
@@ -326,6 +340,84 @@ const App = (() => {
                 <div class="weather-forecast">${forecastHtml}</div>
             </div>
         `;
+    }
+
+    function toggleSarForm(field, card) {
+        const sarContainer = card.querySelector(".field-card-sar");
+
+        if (sarContainer.querySelector(".sar-form")) {
+            sarContainer.innerHTML = "";
+            return;
+        }
+
+        const today = new Date().toISOString().split("T")[0];
+        const threeMonthsAgo = new Date(Date.now() - 90 * 86400000).toISOString().split("T")[0];
+        const sixMonthsAgo = new Date(Date.now() - 180 * 86400000).toISOString().split("T")[0];
+        const nineMonthsAgo = new Date(Date.now() - 270 * 86400000).toISOString().split("T")[0];
+
+        sarContainer.innerHTML = `
+            <div class="sar-form">
+                <div class="sar-period">
+                    <span class="sar-period-label">Before period</span>
+                    <input type="date" class="sar-input" id="sar-before-start-${field.id}" value="${nineMonthsAgo}" />
+                    <input type="date" class="sar-input" id="sar-before-end-${field.id}" value="${sixMonthsAgo}" />
+                </div>
+                <div class="sar-period">
+                    <span class="sar-period-label">After period</span>
+                    <input type="date" class="sar-input" id="sar-after-start-${field.id}" value="${threeMonthsAgo}" />
+                    <input type="date" class="sar-input" id="sar-after-end-${field.id}" value="${today}" />
+                </div>
+                <button class="btn btn-sm btn-sar btn-run-sar">Run SAR Change Detection</button>
+                <div class="sar-status"></div>
+            </div>
+        `;
+
+        sarContainer.querySelector(".btn-run-sar").addEventListener("click", () => fetchSarChange(field, card));
+    }
+
+    async function fetchSarChange(field, card) {
+        const sarContainer = card.querySelector(".field-card-sar");
+        const statusEl = sarContainer.querySelector(".sar-status");
+        const runBtn = sarContainer.querySelector(".btn-run-sar");
+
+        const dateBeforeStart = document.getElementById(`sar-before-start-${field.id}`).value;
+        const dateBeforeEnd = document.getElementById(`sar-before-end-${field.id}`).value;
+        const dateAfterStart = document.getElementById(`sar-after-start-${field.id}`).value;
+        const dateAfterEnd = document.getElementById(`sar-after-end-${field.id}`).value;
+
+        if (!dateBeforeStart || !dateBeforeEnd || !dateAfterStart || !dateAfterEnd) {
+            statusEl.innerHTML = '<span class="status-message error">Please fill all date fields</span>';
+            return;
+        }
+
+        runBtn.disabled = true;
+        statusEl.innerHTML = '<span class="spinner"></span> Computing SAR change detection...';
+
+        try {
+            const response = await fetch(`${API_BASE}/sar-change/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    boundary: field.boundary,
+                    date_before_start: dateBeforeStart,
+                    date_before_end: dateBeforeEnd,
+                    date_after_start: dateAfterStart,
+                    date_after_end: dateAfterEnd,
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || `HTTP ${response.status}`);
+            }
+
+            const updatedField = await response.json();
+            await loadFields();
+            MapModule.focusField(updatedField.id);
+        } catch (error) {
+            statusEl.innerHTML = `<span class="status-message error">Error: ${error.message}</span>`;
+            runBtn.disabled = false;
+        }
     }
 
     async function fetchWeatherPopup(field) {
