@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from shapely.geometry import shape
+from geoalchemy2.shape import to_shape
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.schemas.weather import WeatherResponse, CurrentWeather, DailyForecast
@@ -27,7 +27,7 @@ async def get_field_weather(
     except FieldNotFoundException as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    centroid = shape(field.boundary).centroid
+    centroid = to_shape(field.boundary).centroid
     latitude = centroid.y
     longitude = centroid.x
 
