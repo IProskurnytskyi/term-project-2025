@@ -9,6 +9,7 @@ from fastapi_pagination import add_pagination
 
 from src.api.routers.field import router as field_router
 from src.api.routers.satellite import router as satellite_router
+from src.api.routers.weather import router as weather_router
 from src.database.postgres.handler import PostgreSQLHandler as Database
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
@@ -53,6 +54,7 @@ def create_app() -> FastAPI:
 
     app.include_router(field_router, prefix="/api/v1")
     app.include_router(satellite_router, prefix="/api/v1")
+    app.include_router(weather_router, prefix="/api/v1")
 
     @app.get("/", response_class=RedirectResponse, include_in_schema=False)
     async def index():

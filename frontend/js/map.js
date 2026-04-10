@@ -53,7 +53,7 @@ const MapModule = (() => {
         fieldsLayer.clearLayers();
     }
 
-    function addFieldToMap(field, { onSatellite, onNdvi, onDelete }) {
+    function addFieldToMap(field, { onSatellite, onNdvi, onWeather, onDelete }) {
         if (!field.boundary || !field.boundary.coordinates) return null;
 
         const geoJsonLayer = L.geoJSON(field.boundary, {
@@ -66,7 +66,7 @@ const MapModule = (() => {
             layer.on("mouseover", () => layer.setStyle(FIELD_HOVER_STYLE));
             layer.on("mouseout", () => layer.setStyle(FIELD_STYLE));
 
-            const popupContent = buildPopupContent(field, { onSatellite, onNdvi, onDelete });
+            const popupContent = buildPopupContent(field, { onSatellite, onNdvi, onWeather, onDelete });
             layer.bindPopup(popupContent, { maxWidth: 350 });
         });
 
@@ -74,7 +74,7 @@ const MapModule = (() => {
         return geoJsonLayer;
     }
 
-    function buildPopupContent(field, { onSatellite, onNdvi, onDelete }) {
+    function buildPopupContent(field, { onSatellite, onNdvi, onWeather, onDelete }) {
         const container = document.createElement("div");
         container.className = "field-popup";
 
@@ -126,6 +126,14 @@ const MapModule = (() => {
             onNdvi(field);
         });
 
+        const weatherBtn = document.createElement("button");
+        weatherBtn.className = "btn btn-sm btn-weather";
+        weatherBtn.textContent = "Weather";
+        weatherBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            onWeather(field);
+        });
+
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "btn btn-sm btn-danger";
         deleteBtn.textContent = "Delete";
@@ -136,6 +144,7 @@ const MapModule = (() => {
 
         actions.appendChild(satelliteBtn);
         actions.appendChild(ndviBtn);
+        actions.appendChild(weatherBtn);
         actions.appendChild(deleteBtn);
         container.appendChild(actions);
 

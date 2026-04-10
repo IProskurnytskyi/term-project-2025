@@ -196,9 +196,11 @@ const App = (() => {
                 <div class="field-card-id" title="${field.id}">${shortId}</div>
                 <div class="field-card-date">Created: ${createdDate}</div>
                 ${imagesHtml}
+                <div class="field-card-weather" id="weather-${field.id}"></div>
                 <div class="field-card-actions">
                     <button class="btn btn-sm btn-satellite btn-fetch-rgb">RGB</button>
                     <button class="btn btn-sm btn-ndvi btn-fetch-ndvi">NDVI</button>
+                    <button class="btn btn-sm btn-weather btn-fetch-weather">Weather</button>
                     <button class="btn btn-sm btn-danger btn-delete">Delete</button>
                 </div>
             `;
@@ -210,6 +212,7 @@ const App = (() => {
 
             card.querySelector(".btn-fetch-rgb").addEventListener("click", () => fetchSatelliteImage(field));
             card.querySelector(".btn-fetch-ndvi").addEventListener("click", () => fetchNdviImage(field));
+            card.querySelector(".btn-fetch-weather").addEventListener("click", () => fetchWeather(field, card));
             card.querySelector(".btn-delete").addEventListener("click", () => deleteField(field));
 
             elements.fieldsList.appendChild(card);
@@ -222,6 +225,7 @@ const App = (() => {
             MapModule.addFieldToMap(field, {
                 onSatellite: fetchSatelliteImage,
                 onNdvi: fetchNdviImage,
+                onWeather: fetchWeatherPopup,
                 onDelete: deleteField,
             });
         });
@@ -272,6 +276,77 @@ const App = (() => {
             MapModule.focusField(updatedField.id);
         } catch (error) {
             alert(`Failed to fetch NDVI image: ${error.message}`);
+        }
+    }
+
+    async function fetchWeather(field, card) {
+        const weatherContainer = card.querySelector(".field-card-weather");
+        weatherContainer.innerHTML = '<span class="spinner"></span> Loading weather...';
+
+        try {
+            const response = await fetch(`${API_BASE}/fields/${field.id}/weather`);
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || `HTTP ${response.status}`);
+            }
+
+            const weather = await response.json();
+            weatherContainer.innerHTML = renderWeatherPanel(weather);
+        } catch (error) {
+            weatherContainer.innerHTML = `<span class="status-message error">Failed: ${error.message}</span>`;
+        }
+    }
+
+    function renderWeatherPanel(weather) {
+        const current = weather.current;
+        const daily = weather.daily;
+
+        let forecastHtml = daily.slice(0, 5).map((day) => `
+            <div class="forecast-day">
+                <div class="forecast-date">${day.date.slice(5)}</div>
+                <div class="forecast-desc">${day.weather_description}</div>
+                <div class="forecast-temp">${day.temperature_min}° / ${day.temperature_max}°</div>
+                <div class="forecast-rain">${day.precipitation_sum} mm</div>
+            </div>
+        `).join("");
+
+        return `
+            <div class="weather-panel">
+                <div class="weather-current">
+                    <div class="weather-temp">${current.temperature}°C</div>
+                    <div class="weather-desc">${current.weather_description}</div>
+                    <div class="weather-details">
+                        <span>Feels ${current.apparent_temperature}°C</span>
+                        <span>Humidity ${current.humidity}%</span>
+                        <span>Wind ${current.wind_speed} km/h</span>
+                        <span>Rain ${current.precipitation} mm</span>
+                    </div>
+                </div>
+                <div class="weather-forecast">${forecastHtml}</div>
+            </div>
+        `;
+    }
+
+    async function fetchWeatherPopup(field) {
+        try {
+            const response = await fetch(`${API_BASE}/fields/${field.id}/weather`);
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || `HTTP ${response.status}`);
+            }
+            const weather = await response.json();
+            const current = weather.current;
+            alert(
+                `Weather at field:\n` +
+                `${current.weather_description}\n` +
+                `Temperature: ${current.temperature}°C (feels ${current.apparent_temperature}°C)\n` +
+                `Humidity: ${current.humidity}%\n` +
+                `Wind: ${current.wind_speed} km/h\n` +
+                `Precipitation: ${current.precipitation} mm`
+            );
+        } catch (error) {
+            alert(`Failed to fetch weather: ${error.message}`);
         }
     }
 
