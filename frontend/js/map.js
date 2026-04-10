@@ -53,7 +53,7 @@ const MapModule = (() => {
         fieldsLayer.clearLayers();
     }
 
-    function addFieldToMap(field, { onSatellite, onNdvi, onSar, onWeather, onDelete }) {
+    function addFieldToMap(field, { onSatellite, onNdvi, onSar, onNdviCompare, onWeather, onDelete }) {
         if (!field.boundary || !field.boundary.coordinates) return null;
 
         const geoJsonLayer = L.geoJSON(field.boundary, {
@@ -66,7 +66,7 @@ const MapModule = (() => {
             layer.on("mouseover", () => layer.setStyle(FIELD_HOVER_STYLE));
             layer.on("mouseout", () => layer.setStyle(FIELD_STYLE));
 
-            const popupContent = buildPopupContent(field, { onSatellite, onNdvi, onSar, onWeather, onDelete });
+            const popupContent = buildPopupContent(field, { onSatellite, onNdvi, onSar, onNdviCompare, onWeather, onDelete });
             layer.bindPopup(popupContent, { maxWidth: 350 });
         });
 
@@ -74,7 +74,7 @@ const MapModule = (() => {
         return geoJsonLayer;
     }
 
-    function buildPopupContent(field, { onSatellite, onNdvi, onSar, onWeather, onDelete }) {
+    function buildPopupContent(field, { onSatellite, onNdvi, onSar, onNdviCompare, onWeather, onDelete }) {
         const container = document.createElement("div");
         container.className = "field-popup";
 
@@ -141,6 +141,14 @@ const MapModule = (() => {
             togglePopupSarForm(field, sarSection, onSar);
         });
 
+        const ndviCompareBtn = document.createElement("button");
+        ndviCompareBtn.className = "btn btn-sm btn-ndvi-compare";
+        ndviCompareBtn.textContent = "NDVI Compare";
+        ndviCompareBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            togglePopupNdviCompareForm(field, ndviCompareSection, onNdviCompare);
+        });
+
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "btn btn-sm btn-danger";
         deleteBtn.textContent = "Delete";
@@ -152,12 +160,17 @@ const MapModule = (() => {
         actions.appendChild(satelliteBtn);
         actions.appendChild(ndviBtn);
         actions.appendChild(sarBtn);
+        actions.appendChild(ndviCompareBtn);
         actions.appendChild(deleteBtn);
         container.appendChild(actions);
 
         const sarSection = document.createElement("div");
         sarSection.className = "popup-sar";
         container.appendChild(sarSection);
+
+        const ndviCompareSection = document.createElement("div");
+        ndviCompareSection.className = "popup-ndvi-compare";
+        container.appendChild(ndviCompareSection);
 
         const weatherContainer = document.createElement("div");
         weatherContainer.className = "popup-weather";
@@ -244,6 +257,79 @@ const MapModule = (() => {
 
             try {
                 await onSar(field, beforeStart, beforeEnd, afterStart, afterEnd);
+            } catch (error) {
+                statusEl.innerHTML = `<span class="status-message error">Error: ${error.message}</span>`;
+                runBtn.disabled = false;
+            }
+        });
+    }
+
+    function togglePopupNdviCompareForm(field, section, onNdviCompare) {
+        if (section.querySelector(".ndvi-compare-form")) {
+            section.innerHTML = "";
+            return;
+        }
+
+        const today = new Date().toISOString().split("T")[0];
+        const threeMonthsAgo = new Date(Date.now() - 90 * 86400000).toISOString().split("T")[0];
+
+        section.innerHTML = `
+            <div class="ndvi-compare-form">
+                <div class="ndvi-compare-period">
+                    <span class="ndvi-compare-period-label">Before period</span>
+                    <input type="date" class="ndvi-compare-input ndvi-before-start" value="2021-06-01" />
+                    <input type="date" class="ndvi-compare-input ndvi-before-end" value="2021-09-01" />
+                </div>
+                <div class="ndvi-compare-period">
+                    <span class="ndvi-compare-period-label">After period</span>
+                    <input type="date" class="ndvi-compare-input ndvi-after-start" value="${threeMonthsAgo}" />
+                    <input type="date" class="ndvi-compare-input ndvi-after-end" value="${today}" />
+                </div>
+                <button class="btn btn-sm btn-ndvi-compare btn-run-ndvi-compare">Run NDVI Comparison</button>
+                <div class="ndvi-compare-status"></div>
+                <div class="ndvi-compare-results"></div>
+            </div>
+        `;
+
+        section.querySelector(".btn-run-ndvi-compare").addEventListener("click", async (event) => {
+            event.stopPropagation();
+            const beforeStart = section.querySelector(".ndvi-before-start").value;
+            const beforeEnd = section.querySelector(".ndvi-before-end").value;
+            const afterStart = section.querySelector(".ndvi-after-start").value;
+            const afterEnd = section.querySelector(".ndvi-after-end").value;
+            const statusEl = section.querySelector(".ndvi-compare-status");
+            const resultsEl = section.querySelector(".ndvi-compare-results");
+            const runBtn = section.querySelector(".btn-run-ndvi-compare");
+
+            if (!beforeStart || !beforeEnd || !afterStart || !afterEnd) {
+                statusEl.innerHTML = '<span class="status-message error">Please fill all date fields</span>';
+                return;
+            }
+
+            runBtn.disabled = true;
+            statusEl.innerHTML = '<span class="spinner"></span> Computing NDVI comparison...';
+            resultsEl.innerHTML = "";
+
+            try {
+                const data = await onNdviCompare(field, beforeStart, beforeEnd, afterStart, afterEnd);
+                statusEl.innerHTML = "";
+                resultsEl.innerHTML = `
+                    <div class="ndvi-compare-images">
+                        <div class="ndvi-compare-image">
+                            <div class="preview-label preview-label-ndvi">Before</div>
+                            <img src="${data.ndvi_before_url}" alt="NDVI Before" loading="lazy" />
+                        </div>
+                        <div class="ndvi-compare-image">
+                            <div class="preview-label preview-label-ndvi">After</div>
+                            <img src="${data.ndvi_after_url}" alt="NDVI After" loading="lazy" />
+                        </div>
+                        <div class="ndvi-compare-image ndvi-compare-diff">
+                            <div class="preview-label preview-label-ndvi-diff">Difference</div>
+                            <img src="${data.ndvi_diff_url}" alt="NDVI Difference" loading="lazy" />
+                        </div>
+                    </div>
+                `;
+                runBtn.disabled = false;
             } catch (error) {
                 statusEl.innerHTML = `<span class="status-message error">Error: ${error.message}</span>`;
                 runBtn.disabled = false;

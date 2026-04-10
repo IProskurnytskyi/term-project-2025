@@ -72,6 +72,60 @@ def get_ndvi_image(boundary: dict) -> str:
     return url
 
 
+def get_ndvi_comparison(
+    boundary: dict,
+    date_before_start: date,
+    date_before_end: date,
+    date_after_start: date,
+    date_after_end: date,
+) -> dict[str, str]:
+    """
+    Compare NDVI between two time periods.
+    Returns thumbnail URLs for before, after, and difference images.
+    """
+    ee_geometry = ee.Geometry.Polygon(boundary["coordinates"])
+
+    def get_ndvi_composite(start: date, end: date) -> ee.Image:
+        collection = (
+            ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
+            .filterBounds(ee_geometry)
+            .filterDate(start.isoformat(), end.isoformat())
+            .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
+        )
+        composite = collection.median()
+        return composite.normalizedDifference(["B8", "B4"]).rename("NDVI")
+
+    ndvi_before = get_ndvi_composite(date_before_start, date_before_end)
+    ndvi_after = get_ndvi_composite(date_after_start, date_after_end)
+    difference = ndvi_after.subtract(ndvi_before).rename("NDVI_change")
+
+    ndvi_vis = {
+        "min": -0.2,
+        "max": 0.8,
+        "palette": ["d73027", "fc8d59", "fee08b", "d9ef8b", "91cf60", "1a9850"],
+    }
+    diff_vis = {
+        "min": -0.5,
+        "max": 0.5,
+        "palette": [
+            "d73027",
+            "f46d43",
+            "fdae61",
+            "ffffff",
+            "a6d96a",
+            "66bd63",
+            "1a9850",
+        ],
+    }
+    thumb_params = {"region": ee_geometry, "scale": 10}
+
+    return {
+        "ndvi_before_url": ndvi_before.getThumbURL({**thumb_params, **ndvi_vis}),
+        "ndvi_after_url": ndvi_after.getThumbURL({**thumb_params, **ndvi_vis}),
+        "ndvi_diff_url": difference.getThumbURL({**thumb_params, **diff_vis}),
+    }
+
+
 def get_sar_change_detection(
     boundary: dict,
     date_before_start: date,

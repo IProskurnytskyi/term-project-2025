@@ -209,10 +209,12 @@ const App = (() => {
                 ${imagesHtml}
                 <div class="field-card-weather" id="weather-${field.id}"></div>
                 <div class="field-card-sar" id="sar-${field.id}"></div>
+                <div class="field-card-ndvi-compare" id="ndvi-compare-${field.id}"></div>
                 <div class="field-card-actions">
                     <button class="btn btn-sm btn-satellite btn-fetch-rgb">RGB</button>
                     <button class="btn btn-sm btn-ndvi btn-fetch-ndvi">NDVI</button>
                     <button class="btn btn-sm btn-sar btn-toggle-sar">SAR</button>
+                    <button class="btn btn-sm btn-ndvi-compare btn-toggle-ndvi-compare">NDVI Compare</button>
                     <button class="btn btn-sm btn-weather btn-fetch-weather">Weather</button>
                     <button class="btn btn-sm btn-danger btn-delete">Delete</button>
                 </div>
@@ -226,6 +228,7 @@ const App = (() => {
             card.querySelector(".btn-fetch-rgb").addEventListener("click", () => fetchSatelliteImage(field));
             card.querySelector(".btn-fetch-ndvi").addEventListener("click", () => fetchNdviImage(field));
             card.querySelector(".btn-toggle-sar").addEventListener("click", () => toggleSarForm(field, card));
+            card.querySelector(".btn-toggle-ndvi-compare").addEventListener("click", () => toggleNdviCompareForm(field, card));
             card.querySelector(".btn-fetch-weather").addEventListener("click", () => fetchWeather(field, card));
             card.querySelector(".btn-delete").addEventListener("click", () => deleteField(field));
 
@@ -240,6 +243,7 @@ const App = (() => {
                 onSatellite: fetchSatelliteImage,
                 onNdvi: fetchNdviImage,
                 onSar: fetchSarChangePopup,
+                onNdviCompare: fetchNdviComparisonPopup,
                 onWeather: fetchWeatherPopup,
                 onDelete: deleteField,
             });
@@ -421,6 +425,100 @@ const App = (() => {
         }
     }
 
+    function toggleNdviCompareForm(field, card) {
+        const container = card.querySelector(".field-card-ndvi-compare");
+
+        if (container.querySelector(".ndvi-compare-form")) {
+            container.innerHTML = "";
+            return;
+        }
+
+        const today = new Date().toISOString().split("T")[0];
+        const threeMonthsAgo = new Date(Date.now() - 90 * 86400000).toISOString().split("T")[0];
+
+        container.innerHTML = `
+            <div class="ndvi-compare-form">
+                <div class="ndvi-compare-period">
+                    <span class="ndvi-compare-period-label">Before period</span>
+                    <input type="date" class="ndvi-compare-input" id="ndvi-before-start-${field.id}" value="2021-06-01" />
+                    <input type="date" class="ndvi-compare-input" id="ndvi-before-end-${field.id}" value="2021-09-01" />
+                </div>
+                <div class="ndvi-compare-period">
+                    <span class="ndvi-compare-period-label">After period</span>
+                    <input type="date" class="ndvi-compare-input" id="ndvi-after-start-${field.id}" value="${threeMonthsAgo}" />
+                    <input type="date" class="ndvi-compare-input" id="ndvi-after-end-${field.id}" value="${today}" />
+                </div>
+                <button class="btn btn-sm btn-ndvi-compare btn-run-ndvi-compare">Run NDVI Comparison</button>
+                <div class="ndvi-compare-status"></div>
+                <div class="ndvi-compare-results"></div>
+            </div>
+        `;
+
+        container.querySelector(".btn-run-ndvi-compare").addEventListener("click", () => fetchNdviComparison(field, container));
+    }
+
+    async function fetchNdviComparison(field, container) {
+        const statusEl = container.querySelector(".ndvi-compare-status");
+        const resultsEl = container.querySelector(".ndvi-compare-results");
+        const runBtn = container.querySelector(".btn-run-ndvi-compare");
+
+        const dateBeforeStart = document.getElementById(`ndvi-before-start-${field.id}`).value;
+        const dateBeforeEnd = document.getElementById(`ndvi-before-end-${field.id}`).value;
+        const dateAfterStart = document.getElementById(`ndvi-after-start-${field.id}`).value;
+        const dateAfterEnd = document.getElementById(`ndvi-after-end-${field.id}`).value;
+
+        if (!dateBeforeStart || !dateBeforeEnd || !dateAfterStart || !dateAfterEnd) {
+            statusEl.innerHTML = '<span class="status-message error">Please fill all date fields</span>';
+            return;
+        }
+
+        runBtn.disabled = true;
+        statusEl.innerHTML = '<span class="spinner"></span> Computing NDVI comparison...';
+        resultsEl.innerHTML = "";
+
+        try {
+            const response = await fetch(`${API_BASE}/ndvi-comparison/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    boundary: field.boundary,
+                    date_before_start: dateBeforeStart,
+                    date_before_end: dateBeforeEnd,
+                    date_after_start: dateAfterStart,
+                    date_after_end: dateAfterEnd,
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || `HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            statusEl.innerHTML = "";
+            resultsEl.innerHTML = `
+                <div class="ndvi-compare-images">
+                    <div class="ndvi-compare-image">
+                        <div class="preview-label preview-label-ndvi">Before</div>
+                        <img src="${data.ndvi_before_url}" alt="NDVI Before" loading="lazy" />
+                    </div>
+                    <div class="ndvi-compare-image">
+                        <div class="preview-label preview-label-ndvi">After</div>
+                        <img src="${data.ndvi_after_url}" alt="NDVI After" loading="lazy" />
+                    </div>
+                    <div class="ndvi-compare-image ndvi-compare-diff">
+                        <div class="preview-label preview-label-ndvi-diff">Difference</div>
+                        <img src="${data.ndvi_diff_url}" alt="NDVI Difference" loading="lazy" />
+                    </div>
+                </div>
+            `;
+            runBtn.disabled = false;
+        } catch (error) {
+            statusEl.innerHTML = `<span class="status-message error">Error: ${error.message}</span>`;
+            runBtn.disabled = false;
+        }
+    }
+
     async function fetchSarChangePopup(field, dateBeforeStart, dateBeforeEnd, dateAfterStart, dateAfterEnd) {
         const response = await fetch(`${API_BASE}/sar-change/`, {
             method: "POST",
@@ -442,6 +540,27 @@ const App = (() => {
         const updatedField = await response.json();
         await loadFields();
         MapModule.focusField(updatedField.id);
+    }
+
+    async function fetchNdviComparisonPopup(field, dateBeforeStart, dateBeforeEnd, dateAfterStart, dateAfterEnd) {
+        const response = await fetch(`${API_BASE}/ndvi-comparison/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                boundary: field.boundary,
+                date_before_start: dateBeforeStart,
+                date_before_end: dateBeforeEnd,
+                date_after_start: dateAfterStart,
+                date_after_end: dateAfterEnd,
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || `HTTP ${response.status}`);
+        }
+
+        return await response.json();
     }
 
     async function fetchWeatherPopup(field) {

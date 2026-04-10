@@ -6,10 +6,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.services.google_earth import (
     get_latest_sentinel_image,
     get_ndvi_image,
+    get_ndvi_comparison,
     get_sar_change_detection,
 )
 from src.api.schemas.satellite import SatelliteCreate
 from src.api.schemas.sar import SarChangeRequest
+from src.api.schemas.ndvi_comparison import (
+    NdviComparisonRequest,
+    NdviComparisonResponse,
+)
 from src.api.schemas.field import FieldRead, FieldCreate, FieldUpdate
 from src.common.dependencies import get_db
 from src.database.postgres.crud import field as crud_field
@@ -110,6 +115,23 @@ async def get_ndvi(satellite: SatelliteCreate, db: AsyncSession = Depends(get_db
     )
 
     return new_field
+
+
+@router.post("/ndvi-comparison/", response_model=NdviComparisonResponse)
+async def compare_ndvi(request: NdviComparisonRequest):
+    """
+    Compare NDVI between two time periods for a given boundary.
+    Returns three thumbnail URLs: NDVI before, NDVI after, and the difference map.
+    Green in the diff = vegetation recovery, red = vegetation loss.
+    """
+    result = get_ndvi_comparison(
+        boundary=request.boundary,
+        date_before_start=request.date_before_start,
+        date_before_end=request.date_before_end,
+        date_after_start=request.date_after_start,
+        date_after_end=request.date_after_end,
+    )
+    return NdviComparisonResponse(**result)
 
 
 @router.post("/sar-change/", response_model=FieldRead)
