@@ -15,8 +15,10 @@ def get_latest_sentinel_image(boundary: dict):
     collection = (
         ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
         .filterBounds(ee_geometry)
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 80))
         .sort("system:time_start", False)
+        .limit(10)
+        .sort("CLOUDY_PIXEL_PERCENTAGE")
     )
 
     # Get the newest clear image
@@ -45,8 +47,10 @@ def get_ndvi_image(boundary: dict) -> str:
     collection = (
         ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
         .filterBounds(ee_geometry)
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 80))
         .sort("system:time_start", False)
+        .limit(10)
+        .sort("CLOUDY_PIXEL_PERCENTAGE")
     )
 
     newest_image = collection.first()
@@ -90,7 +94,7 @@ def get_ndvi_comparison(
             ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
             .filterBounds(ee_geometry)
             .filterDate(start.isoformat(), end.isoformat())
-            .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
+            .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 80))
         )
         composite = collection.median()
         return composite.normalizedDifference(["B8", "B4"]).rename("NDVI")
